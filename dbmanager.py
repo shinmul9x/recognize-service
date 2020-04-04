@@ -62,3 +62,41 @@ def insert_characteristic(**option):
 
 def update_characteristic(id: str, authenticity: bool):
     pass
+
+
+def insert_user(username: str, token: str):
+    query = 'INSERT INTO user(id, username, token) VALUES(%s, %s, %s)'
+    value = (None, username, token)
+    db = connect_db()
+    cur = db.cursor()
+    cur.execute(query, value)
+    db.commit()
+    print(cur.rowcount, 'record inserted')
+    cur.close()
+    db.close()
+
+
+def check_user(username: str):
+    query = 'SELECT id FROM user WHERE username=%s'
+    value = (username,)
+    db = connect_db()
+    cur = db.cursor()
+    cur.execute(query, value)
+    result = cur.fetchone()
+    cur.close()
+    db.close()
+    return result is not None
+
+
+def get_token(username: str):
+    query = 'SELECT token FROM user WHERE username=%s'
+    value = (username,)
+    db = connect_db()
+    cur = db.cursor()
+    cur.execute(query, value)
+    result = cur.fetchone()
+    cur.close()
+    db.close()
+    return result
+
+
