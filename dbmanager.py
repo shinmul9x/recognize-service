@@ -1,64 +1,173 @@
 from mysql import connector as mysql
 
 from constant import DbConstant
+from jwtdecoder import decode_token
 
 
 def connect_db():
     return mysql.connect(**DbConstant.config)
 
 
-def insert_token(token: str):
-    query = 'INSERT INTO token_list(id, token) VALUES (%s, %s)'
-    val = (None, token)
-
+def check_user(username: str):
+    query = 'SELECT id FROM user WHERE username=%s'
+    value = (username,)
     db = connect_db()
     cur = db.cursor()
-    cur.execute(query, val)
-    db.commit()
-    print(cur.rowcount, 'record(s) inserted')
+    cur.execute(query, value)
+    result = cur.fetchone()
     cur.close()
     db.close()
+    return result is not None
+
+
+def get_user_id(username: str):
+    query = 'SELECT id FROM user WHERE username=%s'
+    value = (username,)
+    db = connect_db()
+    cur = db.cursor()
+    cur.execute(query, value)
+    result = cur.fetchone()
+    if result is None:
+        query = 'INSERT INTO user(id, username) VALUES(%s, %s)'
+        value = (None, username)
+        cur.execute(query, value)
+        db.commit()
+        result = cur.lastrowid
+    else:
+        result = result[0]
+    cur.close()
+    db.close()
+    return result
+
+
+def insert_home(user_id: int, home_id: int):
+    query = 'SELECT * FROM home WHERE id=%s'
+    value = (home_id,)
+    db = connect_db()
+    cur = db.cursor()
+    cur.execute(query, value)
+    if cur.fetchone() is None:
+        query = 'INSERT INTO home(id, user_id) VALUES(%s, %s)'
+        value = (home_id, user_id)
+        cur.execute(query, value)
+        db.commit()
+    cur.close()
+    db.close()
+
+
+def get_room_id(home_id: int, room_id: int):
+    query = 'SELECT id FROM room WHERE room_id=%s AND home_id IS NOT NULL'
+    value = (room_id,)
+    db = connect_db()
+    cur = db.cursor()
+    cur.execute(query, value)
+    result = cur.fetchone()
+    if result is None:
+        query = 'INSERT INTO room(id, room_id, home_id) VALUES(%s, %s, %s)'
+        value = (None, room_id, home_id)
+        cur.execute(query, value)
+        db.commit()
+        result = cur.lastrowid
+    else:
+        result = result[0]
+    cur.close()
+    db.close()
+    return result
+
+
+def insert_token_room(token_id: int, room_id: int):
+    query = 'SELECT * FROM token_room WHERE token_id=%s AND room_id=%s'
+    value = (token_id, room_id)
+    db = connect_db()
+    cur = db.cursor()
+    cur.execute(query, value)
+    if cur.fetchone() is None:
+        query = 'INSERT INTO token_room(id, token_id, room_id) VALUES(%s, %s, %s)'
+        value = (None, token_id, room_id)
+        cur.execute(query, value)
+        db.commit()
+    cur.close()
+    db.close()
+
+
+def insert_token(token: str):
+    query = 'SELECT id FROM token_list WHERE token=%s'
+    value = (token,)
+    db = connect_db()
+    cur = db.cursor()
+    cur.execute(query, value)
+    result = cur.fetchone()
+    if result is None:
+        user_id = get_user_id(decode_token(token, 'authenticator'))
+        query = 'INSERT INTO token_list(id, token, user_id) VALUES(%s, %s, %s)'
+        value = (None, token, user_id)
+        cur.execute(query, value)
+        db.commit()
+        token_id = cur.lastrowid
+        home_id = decode_token(token, 'home')
+        insert_home(user_id, home_id)
+        room = decode_token(token, 'room')
+        for room_id in room:
+            insert_token_room(token_id, get_room_id(home_id, room_id))
+    cur.close()
+    db.close()
+
+
+def get_user_info(username: str):
+    user_id = get_user_id(username)
+    db = connect_db()
+    cur = db.cursor()
+    user_info = []
+    query = 'SELECT id FROM home WHERE user_id=%s'
+    value = (user_id,)
+    cur.execute(query, value)
+    home_list = cur.fetchall()
+    for _hl in home_list:
+        query = 'SELECT room.room_id ' + \
+                'FROM room, token_room ' + \
+                'WHERE room.id = token_room.room_id AND room.home_id = %s ' + \
+                'GROUP BY room.room_id'
+        value = (_hl[0],)
+        cur.execute(query, value)
+        room_list = cur.fetchall()
+        room = []
+        for _rl in room_list:
+            room.append({'id': _rl[0]})
+        user_info.append({'home_id': _hl[0], 'room': room})
+    cur.close()
+    db.close()
+    return user_info
+
+
+def get_token(username: str, room_id: int):
+    query = 'SELECT tl.token ' + \
+            'FROM token_list AS tl, token_room AS tr, room AS r, user AS u ' + \
+            'WHERE tl.id = tr.token_id AND tr.room_id = r.id AND u.id=tl.user_id AND r.room_id = %s AND u.username=%s'
+    value = (room_id, username)
+    db = connect_db()
+    cur = db.cursor()
+    cur.execute(query, value)
+    result = cur.fetchall()
+    cur.close()
+    db.close()
+    token = []
+    for _r in result:
+        token.append(_r[0])
+    return token
 
 
 def delete_token(token: str):
-    query = 'DELETE FROM token_list WHERE token = %s'
+    query = 'DELETE FROM token_list WHERE token=%s'
     val = (token,)
-
     db = connect_db()
     cur = db.cursor()
     cur.execute(query, val)
     db.commit()
-    print(cur.rowcount, 'record(s) deleted')
     cur.close()
     db.close()
 
-
-def insert_characteristic(**option):
-    query = 'INSERT INTO device_name(id, name, token_id, device_id, authenticity) VALUES(%s, %s, %s, %s, %s)'
-    val = (None, option['device_name'], option['token_id'], option['device_id'], option['authenticity'])
-
-    db = connect_db()
-    cur = db.cursor()
-    cur.execute(query, val)
-    db.commit()
-    device_name_id = cur.lastrowid
-    print(cur.rowcount, 'record(s) inserted with id is ', device_name_id)
-    query = 'INSERT INTO data(id, amplitude, frequency, device_name_id) VALUES(%s, %s, %s, %s)'
-    val = []
-    amp = option['amplitude']
-    freq = option['frequency']
-    if freq is None:
-        for i in range(len(amp)):
-            val.append((None, amp[i], None, device_name_id))
-    else:
-        for i in range(len(amp)):
-            val.append((None, amp[i], freq[i], device_name_id))
-    cur.executemany(query, val)
-    db.commit()
-    print(cur.rowcount, 'record(s) inserted')
-    cur.close()
-    db.close()
-
-
-def update_characteristic(id: str, authenticity: bool):
-    pass
+# insert_token(constant.token_base)
+# info = get_user_info('testac')
+# print(len(info))
+# print(get_token('testac', 30))
+# delete_token('fhjfhs')

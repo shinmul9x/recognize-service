@@ -1,12 +1,12 @@
-class ApiConstant:
-    host = '192.168.2.109'
-    port = '5000'
-
-
 class DbConstant:
     config = {
-        'host': '192.168.2.109',
+        'host': '127.0.0.1',
         'user': 'thuydt',
-        'password': '123456',
+        'password': '1',
         'database': 'recognize_service'
     }
+
+
+token_base1 = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXJ2aWNlX2lkIjoidDQ2cjdjM2hpdGNqZmk3ay1zcXVwdjlrNC1mYng1IiwiYXV0aGVudGljYXRvciI6InRlc3RhY2MiLCJob21lIjo5LCJyb29tIjpbNyw4LDExLDE0LDE1LDI5LDMwXSwiZGV2aWNlX3R5cGUiOlsiQWlyQ29uZGl0aW9uYWwiXSwiaWF0IjoxNTg2MzMzOTg0LCJleHAiOjE1ODYzNTU1ODR9.GGydLr0hHeuO7jcWTBotpAIDoceGD_ML6EswNeh1X9uqh8SrceYgdEZuWi8khIMlnLf5H8OpOjx5LseYyGSzsg'
+token_base2 = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXJ2aWNlX2lkIjoidDQ2cjdjM2hpdGNqZmk3ay1zcXVwdjlrNC1mYng1IiwiYXV0aGVudGljYXRvciI6InRlc3RhY2MiLCJob21lIjo5LCJyb29tIjpbMzIsMzMsMzRdLCJkZXZpY2VfdHlwZSI6WyJBaXJDb25kaXRpb25hbCJdLCJpYXQiOjE1ODYzMzc2ODAsImV4cCI6MTU4NjM1OTI4MH0.KBq6n46OxyLQ71ywxuYFCWj3h1MPBjVCj7kAkd5aTebht8KPF6k-7n0Ifqi3xJJyjxJo9RjCez2Oi54b8jn-5Q'
+token_base = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXJ2aWNlX2lkIjoidDQ2cjdjM2hpdGNqZmk3ay1zcXVwdjlrNC1mYng1IiwiYXV0aGVudGljYXRvciI6InRlc3RhY2MiLCJob21lIjo5LCJyb29tIjpbNyw4XSwiZGV2aWNlX3R5cGUiOlsiQWlyQ29uZGl0aW9uYWwiXSwiaWF0IjoxNTg2MzU0MzQ2LCJleHAiOjE1ODYzNzU5NDZ9.LDAZBF1lakgiCIgkADpucoD18V-9NabDOKCkmXO1FKaq1YaJQBaJxPzX9J1XGh9UBOU8kamFlW_cLjnqUc5AEg'
