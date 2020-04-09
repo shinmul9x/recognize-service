@@ -78,6 +78,34 @@ def api_get_user_info():
         return jsonify({'message': 'no home'}), 400
 
 
+@app.route('/api/get-home', methods=['GET'])
+def api_get_home():
+    token = request.headers['x-access-token']
+    username = decode_token(token, 'username')
+    if username is None:
+        return jsonify({'message': 'miss token'}), 401
+    home = dbmanager.get_home(username)
+    if len(home) > 0:
+        return jsonify({'success': True, 'home': home}), 200
+    else:
+        return jsonify({'message': 'no home'}), 400
+
+
+@app.route('/api/get-room/home/<home_id>', methods=['GET'])
+def api_get_room(home_id):
+    token = request.headers['x-access-token']
+    username = decode_token(token, 'username')
+    if username is None:
+        return jsonify({'message': 'miss token'}), 400
+    room = dbmanager.get_room(username, home_id)
+    if room is None:
+        return jsonify({'message': 'home not exist'})
+    elif len(room) > 0:
+        return jsonify({'success': True, 'room': room}), 200
+    else:
+        return jsonify({'message': 'no room'}), 400
+
+
 @app.route('/api/get-device-list/home/<home_id>/room/<room_id>', methods=['GET'])
 def api_get_device_list(home_id, room_id):
     token = request.headers['x-access-token']

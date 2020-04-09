@@ -139,6 +139,50 @@ def get_user_info(username: str):
     return user_info
 
 
+def get_home(username: str):
+    query = 'SELECT home.id ' + \
+            'FROM home, user ' + \
+            'WHERE home.user_id = user.id AND user.username=%s'
+    val = (username,)
+    db = connect_db()
+    cur = db.cursor()
+    cur.execute(query, val)
+    result = cur.fetchall()
+    cur.close()
+    db.close()
+    home = []
+    for _home in result:
+        home.append({'id': _home[0]})
+    return home
+
+
+def get_room(username: str, home_id: int):
+    db = connect_db()
+    cur = db.cursor()
+    query = 'SELECT home.id ' + \
+            'FROM home, user ' + \
+            'WHERE home.user_id = user.id AND user.username=%s AND home.id=%s'
+    val = (username, home_id)
+    cur.execute(query, val)
+    if cur.fetchone() is None:
+        cur.close()
+        db.close()
+        return None
+    query = 'SELECT room.room_id ' + \
+            'FROM room, token_room ' + \
+            'WHERE room.id = token_room.room_id AND room.home_id = %s ' + \
+            'GROUP BY room.room_id'
+    val = (home_id,)
+    cur.execute(query, val)
+    room_list = cur.fetchall()
+    cur.close()
+    db.close()
+    room = []
+    for _rl in room_list:
+        room.append({'id': _rl[0]})
+    return room
+
+
 def get_token(username: str, room_id: int):
     query = 'SELECT tl.token ' + \
             'FROM token_list AS tl, token_room AS tr, room AS r, user AS u ' + \
@@ -166,8 +210,11 @@ def delete_token(token: str):
     cur.close()
     db.close()
 
+
 # insert_token(constant.token_base)
 # info = get_user_info('testac')
 # print(len(info))
 # print(get_token('testac', 30))
 # delete_token('fhjfhs')
+# get_home('testa')
+# print(get_room('testac', 9))
