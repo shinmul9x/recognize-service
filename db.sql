@@ -71,7 +71,6 @@ CREATE TABLE IF NOT EXISTS `recognize_service`.`device` (
   `device_name` VARCHAR(45) NOT NULL,
   `operation_status` TINYINT NOT NULL DEFAULT 0,
   `start_at` TIME NOT NULL,
-  `token` TEXT NULL,
   `room_id` INT NULL,
   PRIMARY KEY (`id`),
   INDEX `fk_device_room1_idx` (`room_id` ASC),

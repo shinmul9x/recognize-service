@@ -16,8 +16,8 @@ import jwt
 def decode_token(token: str, key: str):
     try:
         payload = jwt.decode(token, verify=False)
-        username = payload[key]
-        return username
+        value = payload[key]
+        return value
     except:
         return None
 

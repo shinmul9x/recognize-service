@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
 from sklearn import svm
+from sklearn import neighbors
 
 model = svm.SVC(decision_function_shape='ovr', C=1e5, kernel='linear')
+# model = neighbors.KNeighborsClassifier(n_neighbors=10, weights='distance', p=2)
 trained = False
 
 
@@ -25,5 +27,6 @@ def train_model():
 
 def recognize_device(x):
     if not trained:
+        train_model()
         return 'model has never been trained'
     return model.predict(np.reshape(np.array(x), (1, 20))).tolist()[0]

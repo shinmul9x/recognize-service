@@ -16,3 +16,5 @@ from sklearn.model_selection import train_test_split
 # print(accuracy_score(y_test, y_pred) * 100)
 
 dic = [1, 2, 3, 4, 5]
+
+topic = '/testacc/9/invalid location/ElectricalSocket/50:02:91:67:ec:de-0-34-1/data'

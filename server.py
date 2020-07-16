@@ -1,7 +1,7 @@
 from flask import Flask, request
 from flask_jsonpify import jsonify
 from jwt import encode
-
+from mqttmanager import subscribe_topics as subscribe_topics_mqtt
 import apimanager
 import dbmanager
 from jwtdecoder import decode_token
@@ -20,7 +20,12 @@ def api_root():
 def api_get_token():
     token = request.args.get('token')
     if (token is not None) and (len(token) > 0):
-        dbmanager.insert_token(token)
+        dbmanager.insert_info_user(token)
+        topics = decode_token(token, 'topic')
+        topics_mqtt = []
+        for topic in topics:
+            topics_mqtt.append(topic.get('topic'))
+        subscribe_topics_mqtt(token, topics_mqtt)
     return jsonify('success')
 
 
@@ -97,37 +102,83 @@ def api_get_room(home_id):
     username = decode_token(token, 'username')
     if username is None:
         return jsonify({'message': 'miss token'}), 400
-    room = dbmanager.get_room(username, home_id)
-    if room is None:
-        return jsonify({'message': 'home not exist'})
-    elif len(room) > 0:
-        return jsonify({'success': True, 'room': room}), 200
-    else:
-        return jsonify({'message': 'no room'}), 400
+    if dbmanager.check_user(username):
+        room = dbmanager.get_room(username, home_id)
+        if room is None:
+            return jsonify({'message': 'home not exist'})
+        elif len(room) > 0:
+            return jsonify({'success': True, 'room': room}), 200
+        else:
+            return jsonify({'message': 'no room'}), 400
+    return jsonify({'message': 'user does not exist'}), 400
 
 
-@app.route('/api/get-device-list/home/<home_id>/room/<room_id>', methods=['GET'])
-def api_get_device_list(home_id, room_id):
+@app.route('/api/get-device-list/room/<room_id>', methods=['GET'])
+def api_get_device_list(room_id):
     token = request.headers['x-access-token']
     username = decode_token(token, 'username')
     if username is None:
         return jsonify({'message': 'miss token'}), 401
-    token_list = dbmanager.get_token(username, room_id)
-    if len(token_list) == 0:
-        return jsonify({'message': 'no token'}), 400
-    device_list = []
-    for _token in token_list:
-        device_type = decode_token(_token, 'device_type')
-        if device_type is None:
-            continue
-        for _type in device_type:
-            _device = apimanager.get_device_list(_token, home_id, room_id, _type)
-            if _device is not None:
-                device_list.extend(_device)
-    if len(device_list) > 0:
-        return jsonify({'success': True, 'data': device_list}), 200
+    if dbmanager.check_user(username):
+        device_list = dbmanager.get_device(room_id)
+        if len(device_list) > 0:
+            return jsonify({'success': True, 'device': device_list}), 200
+        else:
+            return jsonify({'message': 'no data'}), 400
+    return jsonify({'message': 'user does not exist'}), 400
+
+
+@app.route('/api/control-device', methods=['POST'])
+def api_control_device():
+    access_token = request.headers['x-access-token']
+    if access_token is None:
+        return jsonify({'success': False, 'message': 'miss token'}), 400
+    content = request.headers['Content-Type']
+    if content == 'application/x-www-form-urlencoded':
+        did = request.form.get('device_id')
+        device = dbmanager.get_device_by_id(did)
+        if device is None:
+            return jsonify({'success': False, 'message': 'No find device'}), 400
+        token = device['token']
+        if request.form.get('operation_status') == 'true':
+            command = {"80": "30"}
+        else:
+            command = {"80": "31"}
+        result = apimanager.control_device(token, decode_token(token, 'home'), device['room_id'], device['device_type'],
+                                           device['device_id'], str(command))
+        print(result)
+        if result == 'success':
+            return jsonify({'success': True}), 200
+        elif result == 'invalid token':
+            return jsonify({'success': False, 'message': 'token expired'}), 400
+        elif result == 'jwt expired':
+            return jsonify({'success': False, 'message': 'token expired'}), 400
+        else:
+            return jsonify({'success': False, 'message': 'token expired'}), 400
+
+    elif content == 'application/json':
+        did = request.get_json()['device_id']
+        device = dbmanager.get_device_by_id(did)
+        if device is None:
+            return jsonify({'success': False, 'message': 'No find device'}), 400
+        token = device['token']
+        if request.get_json()['operation_status']:
+            command = {"80": "30"}
+        else:
+            command = {"80": "31"}
+        result = apimanager.control_device(token, decode_token(token, 'home'), device['room_id'], device['device_type'],
+                                           device['device_id'], str(command))
+
+        if result == 'success':
+            return jsonify({'success': True}), 200
+        elif result == 'invalid token':
+            return jsonify({'success': False, 'message': 'token expired'}), 400
+        elif result == 'jwt expired':
+            return jsonify({'success': False, 'message': 'token expired'}), 400
+        else:
+            return jsonify({'success': False, 'message': 'token expired'}), 400
     else:
-        return jsonify({'message': 'no data'}), 400
+        return jsonify({'message': '415 Unsupported Media Type'}), 415
 
 
 if __name__ == '__main__':
